@@ -1,201 +1,84 @@
 #!/usr/bin/env python3
-import os, asyncio, discord, random
+# coding=utf-8
+import os
+import traceback
+import logging
+from datetime import datetime, timedelta, timezone
+import discord
 from discord.ext import commands, tasks
-from discord.utils import get
-import gspread, gspread_asyncio
-from gspread.models import Cell
-from google.oauth2.service_account import Credentials
+from discord.utils import get 
+import aiomysql
+import aiohttp
+import asyncio
+import socket
+import collections
+import requests
+import json
+import re
 from dotenv import load_dotenv
-import mysql.connector, time
-from datetime import datetime
-import traceback, logging, json
+import random
 
-#from itertools import cycle
-
-def get_creds():
-    creds = Credentials.from_service_account_file("/NOVA/Gamble_Bot/nova-casino-project-263ddbe4da42.json")
-    scoped = creds.with_scopes([
-        "https://www.googleapis.com/auth/drive.file",
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive",
-    ])
-    return scoped
-
-agcm = gspread_asyncio.AsyncioGspreadClientManager(get_creds)
-
-SCOPE = ['https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/drive.file",
-          "https://www.googleapis.com/auth/drive"]
-creds = Credentials.from_service_account_file('/NOVA/Gamble_Bot/nova-casino-project-263ddbe4da42.json', scopes=SCOPE)
-gc = gspread.authorize(creds)
-
-alliance_gambling_sheet = gc.open("Alliance Board - Active").worksheet("Gambling")
-alliance_coreData_sheet = gc.open("Alliance Board - Active").worksheet("CoreData")
-horde_gambling_sheet = gc.open("Horde Board - Active").worksheet("Gambling")
-horde_coreData_sheet = gc.open("Horde Board - Active").worksheet("CoreData")
-
-alliance_counter_lottery = 6
-alliance_counter_init_lottery = 0
-
+from constants import *
+from functions import *
 
 running=False
 lottery_tickets= []
-persdict = {
-    234065317037342721 : {
-        "name" : "Aiune",
-        "serv" : "Tyrande [A]"
-        },
-    163324686086832129 : {
-        "name" : "Sanfura",
-        "serv" : "Ravencrest [A]"
-        },
-    241687840151437313 : {
-        "name" : "Windzorn",
-        "serv" : "Silvermoon [A]"
-        },
-    227102790349094923 : {
-        "name" : "Aizagora",
-        "serv" : "TwistingNether [H]"
-        },
-    278172998496944128 : {
-        "name" : "Saadi",
-        "serv" : "Silvermoon [A]"
-        },
-    768024256822902815 : {
-        "name" : "Killèr",
-        "serv" : "TwistingNether [H]"
-        },
-    190770926453915648 : {
-        "name" : "Ménex",
-        "serv" : "Kazzak [H]"
-        },
-    226069789754392576 : {
-        "name" : "Stepstan",
-        "serv" : "TwistingNether [H]"
-        },
-    140888963878486017 : {
-        "name" : "Gnomesrock",
-        "serv" : "Silvermoon [A]"
-        },
-    210119381902950401 : {
-        "name" : "Miladtaker",
-        "serv" : "Ravencrest [A]"
-        },
-    282142763162533888 : {
-        "name" : "Nashiira",
-        "serv" : "Sanguino [H]"
-        },
-    775725184689635328 : {
-        "name" : "Huntardson",
-        "serv" : "TwistingNether [H]"
-        },
-    175860348472000513 : {
-        "name" : "Ñatsuu",
-        "serv" : "TwistingNether [H]"
-        },
-    318866925398786069 : {
-        "name" : "Phobyac",
-        "serv" : "Zul'jin [H]"
-        },
-    332427335032635394 : {
-        "name" : "Lyxalia",
-        "serv" : "Silvermoon [A]"
-        },
-    385519896966070273 : {
-        "name" : "Chiieff",
-        "serv" : "TarrenMill [H]"
-        },
-    224941806524170240 : {
-        "name" : "Durdy",
-        "serv" : "TarrenMill [H]"
-        },
-    200277087238619137 : {
-        "name" : "Revisdh",
-        "serv" : "TarrenMill [H]"
-        },
-    237971738225410048 : {
-        "name" : "Lîza",
-        "serv" : "TarrenMill [H]"
-        },
-    232880721205788672 : {
-        "name" : "Zorrafel",
-        "serv" : "Silvermoon [A]"
-        },
-    564971082587701278 : {
-        "name" : "Kurtcôwbain",
-        "serv" : "Illidan [H]"
-        }
-}
 
-sync_msg= ["We are going to swap out the dice with some brand new ones! We will be right back!",
-            "Table is offline while we swap out the dice. We will be right back!",
-            "Our hostess is taking a short smoke break. We will be right back!",
-            "Looks like someone dropped the dice... thank god it's no soap - be right back!",
-            "Did I hear Yahtzee?.. Not?.. eh, wrong Table - be right back finding the right one!",
-            "Horst obviously cheated! Please excuse us while we call the dice-authorities!",
-            "As Phil Collins sang... It's just another day in pair 'o dice - right back at ya!",
-            "Natural 20, critical hi- Wait... wrong die, let me find the right one!",
-            "Who else wishes to take a quick smoke? Just me? - too bad I run this, so 'scuse me~!",
-            "Gotta repaint the spots on the dice... this time hopefully on the right sides! - catch you in a bit!",
-            "If you think coming back from the toilet and kissing the dice will help you win... Urine luck - so let's all try it"]
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
+GUILD_ID = os.getenv('NOVA_ID')
+DB_HOST = os.getenv('DB_HOST')
+DB_PORT = os.getenv('DB_PORT')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+OPS_DB = os.getenv('OPS_DB')
+MPLUS_DB =  os.getenv("MPLUS_DB")
+CASINO_DB =  os.getenv("CASINO_DB")
 
-gv = open('/NOVA/global_vars.json',"r")
-global_vars = json.load(gv)
-gv.close()
+intents = discord.Intents().all()
+class Casino_Bot(commands.Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.mplus_pool = None
+        self.ops_pool = None
+        self.casino_pool = None
+        self._resolver = aiohttp.AsyncResolver()
+        self.help_pages = []
+
+        # Use AF_INET as its socket family to prevent HTTPS related problems both locally
+        # and in production.
+        self._connector = aiohttp.TCPConnector(
+            resolver=self._resolver,
+            family=socket.AF_INET,
+        )
+
+        self.http.connector = self._connector
+        self.http_session = aiohttp.ClientSession(connector=self._connector)
+
+
+    async def logout(self):
+        """|coro|
+        Logs out of Discord and closes all connections.
+        """
+        try:
+            if self.mplus_pool:
+                self.mplus_pool.close()
+                await self.mplus_pool.wait_closed()
+            if self.ops_pool:
+                self.ops_pool.close()
+                await self.ops_pool.wait_closed()
+        finally:
+            await super().logout()
+
+bot = commands.Casino_Bot(command_prefix=commands.when_mentioned_or('g!'), case_insensitive=True, intents=intents)
 
 logging.basicConfig(filename='/NOVA/Gamble_Bot/Casino.log', level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-intents = discord.Intents().all()
-bot = commands.Bot(command_prefix=commands.when_mentioned_or('g!'), case_insensitive=True, intents=intents)
 
-def convert_si_to_number(i):
-    total_stars = 0
-    alpha=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
-            'L', 'N','O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-            'X', 'Y','Z', 'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
-            'j', 'l','n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-            'w', 'x','y', 'z']
-    res = [ele for ele in alpha if(ele in i)]
-    if 'k' in i:
-        if len(i) > 1:
-            total_stars = float(i.replace('k', '')) * 1000
-    elif 'K' in i:
-        if len(i) > 1:
-            total_stars = float(i.replace('K', '')) * 1000
-    elif 'm' in i:
-        if len(i) > 1:
-            total_stars = float(i.replace('m', '')) * 1000000
-    elif 'M' in i:
-        if len(i) > 1:
-            total_stars = float(i.replace('M', '')) * 1000000
-    elif 'b' in i:
-        if len(i) > 1:
-            total_stars = float(i.replace('b', '')) * 1000000000
-    elif 'B' in i:
-        if len(i) > 1:
-            total_stars = float(i.replace('B', '')) * 1000000000
-    elif i is None or i == '' or i == ' ' or res:
-        total_stars = 0
-    else:
-        total_stars = int(i)
-    return int(total_stars)
 
-#def alliance_find_empty_cell_gambling(worksheet):
-#    agc = await agcm.authorize()
-#    str_list = list(filter(None, worksheet.col_values(2)))
-#    return len(str_list) + 4
-    
-#def horde_find_empty_cell_gambling(worksheet):
-#    gc.login()
-#    str_list = list(filter(None, worksheet.col_values(2)))
-#    return len(str_list) + 4
 
-#def alliance_find_empty_cell_lottery(worksheet):
-#    gc.login()
-#    str_list = list(filter(None, worksheet.col_values(2)))
-#    return len(str_list) + 4
 
 @bot.event
 async def on_ready():
