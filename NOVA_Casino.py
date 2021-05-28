@@ -17,7 +17,6 @@ import json
 import re
 from dotenv import load_dotenv
 from random import randint
-from string import ascii_lowercase
 
 from functions import *
 

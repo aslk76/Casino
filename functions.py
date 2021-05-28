@@ -1,3 +1,5 @@
+from string import ascii_lowercase
+
 def convert_si_to_number(i):
     if not i:
         return 0
