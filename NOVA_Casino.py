@@ -246,7 +246,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                     query = """
                         SELECT COALESCE((
                             SELECT cur_balance 
-                            FROM ov_creds 
+                            FROM `nova_mplus`.`ov_creds`
                             WHERE booster = %s
                             ),0) cb
                     """
@@ -257,7 +257,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                     query = """
                         SELECT COALESCE((
                             SELECT cur_balance 
-                            FROM ov_creds 
+                            FROM `nova_mplus`.`ov_creds` 
                             WHERE booster = %s
                             ),0) cb
                     """
@@ -485,7 +485,7 @@ async def betAnyone(ctx, pot):
                             query = """
                                 SELECT COALESCE((
                                     SELECT cur_balance 
-                                    FROM ov_creds 
+                                    FROM `nova_mplus`.`ov_creds` 
                                     WHERE booster = %s
                                     ),0) cb
                             """
@@ -496,7 +496,7 @@ async def betAnyone(ctx, pot):
                             query = """
                                 SELECT COALESCE((
                                     SELECT cur_balance 
-                                    FROM ov_creds 
+                                    FROM `nova_mplus`.`ov_creds` 
                                     WHERE booster = %s
                                     ),0) cb
                             """
@@ -649,7 +649,7 @@ async def lottery(ctx):
                 query = """
                     SELECT COALESCE((
                         SELECT cur_balance 
-                        FROM ov_creds 
+                        FROM `nova_mplus`.`ov_creds` 
                         WHERE booster = %s
                         ),0) cb
                 """
