@@ -168,261 +168,35 @@ async def Logout(ctx):
 async def bet(ctx, target_user : discord.Member, pot):
     """example: g!bet @ASLK76#2188 100K
     """
-    await ctx.message.delete()
-    pot = convert_si_to_number(pot)
-    if ctx.channel.id != 815104636708323332:
-        await ctx.send("You can only gamble in <#815104636708323332>")
-    elif ctx.author==target_user:
-        em = discord.Embed(title="❌ Can't bet against your self",
-                            description="Unless you can duplicate your self IRL!",
-                            color=discord.Color.red())
-        await ctx.send(embed=em, delete_after=5)
-    elif pot<1000 or pot == None:
-        em = discord.Embed(title="❌ Bet too low",
-                            description="The minimum amount for betting is 1000 !",
-                            color=discord.Color.red())
-        await ctx.send(embed=em, delete_after=5)
-    else:
-        gamble_embed=discord.Embed(title="💰Gamble info💰", description="", color=0x4feb1c)
-        gamble_embed.set_thumbnail(
-            url="https://cdn.discordapp.com/avatars/634917649335320586/ea303e8b580d56ff6837e256b1df6ef6.png")
-        gamble_embed.add_field(name="**Initiated By: **", 
-            value=ctx.author.mention, inline=True)
-        gamble_embed.add_field(name="**Against: **", 
-            value=target_user.mention, inline=True)
-        gamble_embed.add_field(name="**For the amount of: **", 
-            value=f"{pot:,d}", inline=True)
-        gamble_embed.set_footer(text=f"Timestamp: {datetime.now(timezone.utc).replace(microsecond=0)}")
-        gamble_msg = await ctx.send(embed=gamble_embed)
-        gamble_msg_embed = gamble_msg.embeds[0].to_dict()
-
-        name, realm = await checkPers(ctx.author.id)
-        if name is not None:
-            gambler1 = f"{name}-{realm}"
+    try:
+        await ctx.message.delete()
+        pot = convert_si_to_number(pot)
+        if ctx.channel.id != 815104636708323332:
+            await ctx.send("You can only gamble in <#815104636708323332>")
+        elif ctx.author==target_user:
+            em = discord.Embed(title="❌ Can't bet against your self",
+                                description="Unless you can duplicate your self IRL!",
+                                color=discord.Color.red())
+            await ctx.send(embed=em, delete_after=5)
+        elif pot<1000 or pot == None:
+            em = discord.Embed(title="❌ Bet too low",
+                                description="The minimum amount for betting is 1000 !",
+                                color=discord.Color.red())
+            await ctx.send(embed=em, delete_after=5)
         else:
-            if "-" not in ctx.author.nick:
-                em = discord.Embed(title="❌",
-                    description=f"Nickname format not correct for {ctx.author}",
-                    color=discord.Color.red())
-                await ctx.send(embed=em, delete_after=5)
-                await gamble_msg.delete()
-                raise ValueError(f"Nickname format not correct for {ctx.author}")
-            gambler1 = ctx.author.nick
+            gamble_embed=discord.Embed(title="💰Gamble info💰", description="", color=0x4feb1c)
+            gamble_embed.set_thumbnail(
+                url="https://cdn.discordapp.com/avatars/634917649335320586/ea303e8b580d56ff6837e256b1df6ef6.png")
+            gamble_embed.add_field(name="**Initiated By: **", 
+                value=ctx.author.mention, inline=True)
+            gamble_embed.add_field(name="**Against: **", 
+                value=target_user.mention, inline=True)
+            gamble_embed.add_field(name="**For the amount of: **", 
+                value=f"{pot:,d}", inline=True)
+            gamble_embed.set_footer(text=f"Timestamp: {datetime.now(timezone.utc).replace(microsecond=0)}")
+            gamble_msg = await ctx.send(embed=gamble_embed)
+            gamble_msg_embed = gamble_msg.embeds[0].to_dict()
 
-        name, realm = await checkPers(target_user.id)
-        if name is not None:
-            gambler2 = f"{name}-{realm}"
-        else:
-            if "-" not in target_user.nick:
-                em = discord.Embed(title="❌",
-                    description=f"Nickname format not correct for {target_user}",
-                    color=discord.Color.red())
-                await ctx.send(embed=em, delete_after=5)
-                await gamble_msg.delete()
-                raise ValueError(f"Nickname format not correct for {target_user}")
-            gambler2 = target_user.nick
-        
-        async with ctx.bot.casino_pool.acquire() as conn:
-            async with conn.cursor() as cursor:
-                query = """
-                    SELECT COALESCE((
-                        SELECT cur_balance 
-                        FROM ov_creds 
-                        WHERE booster = %s
-                        ),0) cb
-                """
-                val = (gambler1,)
-                await cursor.execute(query, val)
-                (gambler1_balance,) = await cursor.fetchone()
-
-                query = """
-                    SELECT COALESCE((
-                        SELECT cur_balance 
-                        FROM ov_creds 
-                        WHERE booster = %s
-                        ),0) cb
-                """
-                val = (gambler2,)
-                await cursor.execute(query, val)
-                (gambler2_balance,) = await cursor.fetchone()
-        
-                if gambler1_balance < pot:
-                    gamble_msg_embed['color'] = 0xff0000
-                    gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
-                    not_enough_bal = discord.Embed.from_dict(gamble_msg_embed)
-                    not_enough_bal.add_field(
-                        name = "❌NOT ENOUGH BALANCE❌", 
-                        value = (
-                            f"{ctx.author.mention} doesn't have enough balance to cover the bet, "
-                            "bet is cancelled!"), 
-                        inline = False)
-                    await gamble_msg.edit(embed=not_enough_bal)
-                    await gamble_msg.add_reaction(u"\u274C")
-                elif gambler2_balance < pot:
-                    gamble_msg_embed['color'] = 0xff0000
-                    gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
-                    not_enough_bal = discord.Embed.from_dict(gamble_msg_embed)
-                    not_enough_bal.add_field(
-                        name = "❌NOT ENOUGH BALANCE❌", 
-                        value = (
-                            f"{target_user.mention} doesn't have enough balance to cover the bet, "
-                            "bet is cancelled!"), 
-                        inline = False)
-                    await gamble_msg.edit(embed=not_enough_bal)
-                    await gamble_msg.add_reaction(u"\u274C")
-                else:
-                    await gamble_msg.add_reaction(u"\U0001F44D")
-                    def check(reaction, user):
-                        m = gamble_msg
-                        return user == target_user and str(reaction.emoji) == '👍' and m.id == reaction.message.id
-
-                    try:
-                        reaction, user = await ctx.bot.wait_for('reaction_add', timeout=15.0, check=check)
-                    except asyncio.TimeoutError:
-                        gamble_msg_embed['color'] = 0xff0000
-                        gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
-                        time_out = discord.Embed.from_dict(gamble_msg_embed)
-                        time_out.add_field(
-                            name = "❌TIME OUT❌", 
-                            value = (
-                                f"{target_user.mention} didn't respond in time, "
-                                "bet is cancelled!"), 
-                            inline = False)
-                        await gamble_msg.edit(embed=time_out)
-                        await gamble_msg.clear_reaction(u"\U0001F44D")
-                        await gamble_msg.add_reaction(u"\u274C")
-                    else:
-                        now = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None)
-                        gambler1_roll = randint(1, 6)
-                        gambler2_roll = randint(1, 6)
-                        if gambler1_roll > gambler2_roll:
-                            gamble_winner = gambler1
-                            gamble_loser = gambler2
-                            
-                            gamble_msg_embed['color'] = 0x00ff00
-                            gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
-                            dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
-                            dice_roll_embed.add_field(
-                                name = "Roll Results:", 
-                                value = (
-                                    f"{ctx.author.mention} 🎲{gambler1_roll} \n"
-                                    f"{target_user.mention} 🎲{gambler2_roll}"), inline = False)
-                            dice_roll_embed.add_field(
-                                name = "Winner is: ", 
-                                value = gamble_winner, inline = True)
-                            dice_roll_embed.add_field(
-                                name = "Win Amount: ", 
-                                value = f"{(pot*2) - (pot*2*0.05):,.0f}", inline = True)
-                            dice_roll_embed.add_field(name = "--", value = "--" , inline = False)
-                            dice_roll_embed.add_field(
-                                name = "Loser is: ", 
-                                value = gamble_loser, inline = True)
-                            dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
-
-                            query = """
-                                INSERT INTO gambling_log 
-                                    (date, pot, name) 
-                                VALUES (%s, %s, %s)
-                            """
-                            val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
-                            await cursor.executemany(query,val)
-
-                            await gamble_msg.edit(embed=dice_roll_embed)
-                            await gamble_msg.add_reaction(u"\U0001F4AF")
-
-                        elif gambler2_roll>gambler1_roll:
-                            gamble_winner=gambler2
-                            gamble_loser=gambler1
-
-                            gamble_msg_embed['color'] = 0x00ff00
-                            gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
-                            dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
-                            dice_roll_embed.add_field(
-                                name = "Roll Results:", 
-                                value = (
-                                    f"{ctx.message.author.mention} 🎲{gambler1_roll} \n"
-                                    f"{target_user.mention} 🎲{gambler2_roll}"), inline = False)
-                            dice_roll_embed.add_field(
-                                name = "Winner is: ", 
-                                value = gamble_winner, inline = True)
-                            dice_roll_embed.add_field(
-                                name = "Win Amount: ", 
-                                value = f"{(pot*2) - (pot*2*0.05):,.0f}", inline = True)
-                            dice_roll_embed.add_field(name = "--", value = "--" , inline = False)
-                            dice_roll_embed.add_field(
-                                name = "Loser is: ", 
-                                value = gamble_loser, inline = True)
-                            dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
-
-                            query = """
-                                INSERT INTO gambling_log 
-                                    (date, pot, name) 
-                                VALUES (%s, %s, %s)
-                            """
-                            val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
-                            await cursor.executemany(query,val)
-
-                            await gamble_msg.edit(embed=dice_roll_embed)
-                            await gamble_msg.add_reaction(u"\U0001F4AF")
-
-                        else:
-                            gamble_msg_embed['color'] = 0x0000ff
-                            gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
-                            dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
-                            dice_roll_embed.add_field(
-                                name = "Roll Results:", 
-                                value = (
-                                    f"{ctx.author.mention} 🎲{gambler1_roll} \n" 
-                                    f"{target_user.mention} 🎲{gambler2_roll}"), inline=True)
-                            dice_roll_embed.add_field(name="Winner is: ", 
-                                value= "Tie, no balance changes!", inline=False)
-                            await gamble_msg.edit(embed=dice_roll_embed)
-                            await gamble_msg.add_reaction(u"\U0001F4AF")
-
-
-@bot.command()
-@commands.cooldown(3, 20, commands.BucketType.channel)
-async def betAnyone(ctx, pot):
-    """example: g!bet 100K
-    """
-    await ctx.message.delete()
-    pot = convert_si_to_number(pot)
-    if ctx.message.channel.id != 815104636708323332:
-        await ctx.message.channel.send("You can only gamble in <#815104636708323332>")
-    elif pot<1000 or pot == None:
-        em = discord.Embed(title="❌ Bet too low",
-                            description="The minimum amount for betting is 1000 !",
-                            color=discord.Color.red())
-        await ctx.message.channel.send(embed=em, delete_after=5)
-    else:
-        gamble_embed=discord.Embed(title="💰Gamble info💰", description="", color=0x4feb1c)
-        gamble_embed.set_thumbnail(
-            url="https://cdn.discordapp.com/avatars/634917649335320586/ea303e8b580d56ff6837e256b1df6ef6.png")
-        gamble_embed.add_field(name="**Initiated By: **", 
-            value=ctx.author.mention, inline=True)
-        gamble_embed.add_field(name="**For the amount of: **", 
-            value=f"{pot:,d}", inline=True)
-        gamble_embed.set_footer(text=f"Timestamp: {datetime.now(timezone.utc).replace(microsecond=0)}")
-        gamble_msg = await ctx.message.channel.send(embed=gamble_embed)
-        gamble_msg_embed = gamble_msg.embeds[0].to_dict()
-        
-        await gamble_msg.add_reaction(u"\U0001F44D")
-        def check(reaction, user):
-            m = gamble_msg
-            return str(reaction.emoji) == '👍' and m.id == reaction.message.id and not user.bot
-
-        try:
-            reaction, user = await ctx.bot.wait_for('reaction_add', timeout=15.0, check=check)
-        except asyncio.TimeoutError:
-            gamble_msg_embed['color'] = 0xff0000
-            gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
-            time_out = discord.Embed.from_dict(gamble_msg_embed)
-            time_out.add_field(name = "❌TIME OUT❌", 
-                value = "No one responded in time, bet is cancelled!", inline = False)
-            await gamble_msg.edit(embed=time_out)
-            await gamble_msg.clear_reaction(u"\U0001F44D")
-            await gamble_msg.add_reaction(u"\u274C")
-        else:
             name, realm = await checkPers(ctx.author.id)
             if name is not None:
                 gambler1 = f"{name}-{realm}"
@@ -436,84 +210,96 @@ async def betAnyone(ctx, pot):
                     raise ValueError(f"Nickname format not correct for {ctx.author}")
                 gambler1 = ctx.author.nick
 
-            name, realm = await checkPers(user.id)
+            name, realm = await checkPers(target_user.id)
             if name is not None:
                 gambler2 = f"{name}-{realm}"
             else:
-                if "-" not in user.nick:
+                if "-" not in target_user.nick:
                     em = discord.Embed(title="❌",
-                        description=f"Nickname format not correct for {user}",
+                        description=f"Nickname format not correct for {target_user}",
                         color=discord.Color.red())
                     await ctx.send(embed=em, delete_after=5)
                     await gamble_msg.delete()
-                    raise ValueError(f"Nickname format not correct for {user}")
-                gambler2 = user.nick
-                    
-            if gambler1==gambler2:
-                em = discord.Embed(title="❌ Can't bet against your self",
-                        description="Unless you can duplicate your self IRL!",
-                        color=discord.Color.red())
-                await ctx.send(embed=em, delete_after=5)
-                await gamble_msg.delete()
-            else:
-                async with ctx.bot.casino_pool.acquire() as conn:
-                    async with conn.cursor() as cursor:
-                        query = """
-                            SELECT COALESCE((
-                                SELECT cur_balance 
-                                FROM ov_creds 
-                                WHERE booster = %s
-                                ),0) cb
-                        """
-                        val = (gambler1,)
-                        await cursor.execute(query, val)
-                        (gambler1_balance,) = await cursor.fetchone()
+                    raise ValueError(f"Nickname format not correct for {target_user}")
+                gambler2 = target_user.nick
+            
+            async with ctx.bot.casino_pool.acquire() as conn:
+                async with conn.cursor() as cursor:
+                    query = """
+                        SELECT COALESCE((
+                            SELECT cur_balance 
+                            FROM ov_creds 
+                            WHERE booster = %s
+                            ),0) cb
+                    """
+                    val = (gambler1,)
+                    await cursor.execute(query, val)
+                    (gambler1_balance,) = await cursor.fetchone()
 
-                        query = """
-                            SELECT COALESCE((
-                                SELECT cur_balance 
-                                FROM ov_creds 
-                                WHERE booster = %s
-                                ),0) cb
-                        """
-                        val = (gambler2,)
-                        await cursor.execute(query, val)
-                        (gambler2_balance,) = await cursor.fetchone()
+                    query = """
+                        SELECT COALESCE((
+                            SELECT cur_balance 
+                            FROM ov_creds 
+                            WHERE booster = %s
+                            ),0) cb
+                    """
+                    val = (gambler2,)
+                    await cursor.execute(query, val)
+                    (gambler2_balance,) = await cursor.fetchone()
+            
+                    if gambler1_balance < pot:
+                        gamble_msg_embed['color'] = 0xff0000
+                        gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
+                        not_enough_bal = discord.Embed.from_dict(gamble_msg_embed)
+                        not_enough_bal.add_field(
+                            name = "❌NOT ENOUGH BALANCE❌", 
+                            value = (
+                                f"{ctx.author.mention} doesn't have enough balance to cover the bet, "
+                                "bet is cancelled!"), 
+                            inline = False)
+                        await gamble_msg.edit(embed=not_enough_bal)
+                        await gamble_msg.add_reaction(u"\u274C")
+                    elif gambler2_balance < pot:
+                        gamble_msg_embed['color'] = 0xff0000
+                        gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
+                        not_enough_bal = discord.Embed.from_dict(gamble_msg_embed)
+                        not_enough_bal.add_field(
+                            name = "❌NOT ENOUGH BALANCE❌", 
+                            value = (
+                                f"{target_user.mention} doesn't have enough balance to cover the bet, "
+                                "bet is cancelled!"), 
+                            inline = False)
+                        await gamble_msg.edit(embed=not_enough_bal)
+                        await gamble_msg.add_reaction(u"\u274C")
+                    else:
+                        await gamble_msg.add_reaction(u"\U0001F44D")
+                        def check(reaction, user):
+                            m = gamble_msg
+                            return user == target_user and str(reaction.emoji) == '👍' and m.id == reaction.message.id
 
-                        if gambler1_balance < pot:
+                        try:
+                            reaction, user = await bot.wait_for('reaction_add', timeout=15.0, check=check)
+                        except asyncio.TimeoutError:
                             gamble_msg_embed['color'] = 0xff0000
                             gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
-                            not_enough_bal = discord.Embed.from_dict(gamble_msg_embed)
-                            not_enough_bal.add_field(
-                                name = "❌NOT ENOUGH BALANCE❌", 
+                            time_out = discord.Embed.from_dict(gamble_msg_embed)
+                            time_out.add_field(
+                                name = "❌TIME OUT❌", 
                                 value = (
-                                    f"{ctx.author.mention} doesn't have enough balance to cover the bet, "
+                                    f"{target_user.mention} didn't respond in time, "
                                     "bet is cancelled!"), 
                                 inline = False)
-                            await gamble_msg.edit(embed=not_enough_bal)
-                            await gamble_msg.clear_reaction(u"\U0001F44D")
-                            await gamble_msg.add_reaction(u"\u274C")
-                        elif gambler2_balance < pot:
-                            gamble_msg_embed['color'] = 0xff0000
-                            gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
-                            not_enough_bal = discord.Embed.from_dict(gamble_msg_embed)
-                            not_enough_bal.add_field(
-                                name = "❌NOT ENOUGH BALANCE❌", 
-                                value = (
-                                    f"{user.mention} doesn't have enough balance to cover the bet, "
-                                    "bet is cancelled!"), 
-                                inline = False)
-                            await gamble_msg.edit(embed=not_enough_bal)
+                            await gamble_msg.edit(embed=time_out)
                             await gamble_msg.clear_reaction(u"\U0001F44D")
                             await gamble_msg.add_reaction(u"\u274C")
                         else:
                             now = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None)
                             gambler1_roll = randint(1, 6)
                             gambler2_roll = randint(1, 6)
-                            if gambler1_roll>gambler2_roll:
-                                gamble_winner=gambler1
-                                gamble_loser=gambler2
-
+                            if gambler1_roll > gambler2_roll:
+                                gamble_winner = gambler1
+                                gamble_loser = gambler2
+                                
                                 gamble_msg_embed['color'] = 0x00ff00
                                 gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
                                 dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
@@ -521,7 +307,7 @@ async def betAnyone(ctx, pot):
                                     name = "Roll Results:", 
                                     value = (
                                         f"{ctx.author.mention} 🎲{gambler1_roll} \n"
-                                        f"{user.mention} 🎲{gambler2_roll}"), inline = False)
+                                        f"{target_user.mention} 🎲{gambler2_roll}"), inline = False)
                                 dice_roll_embed.add_field(
                                     name = "Winner is: ", 
                                     value = gamble_winner, inline = True)
@@ -533,7 +319,7 @@ async def betAnyone(ctx, pot):
                                     name = "Loser is: ", 
                                     value = gamble_loser, inline = True)
                                 dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
-                                
+
                                 query = """
                                     INSERT INTO gambling_log 
                                         (date, pot, name) 
@@ -544,19 +330,19 @@ async def betAnyone(ctx, pot):
 
                                 await gamble_msg.edit(embed=dice_roll_embed)
                                 await gamble_msg.add_reaction(u"\U0001F4AF")
-                                
+
                             elif gambler2_roll>gambler1_roll:
                                 gamble_winner=gambler2
                                 gamble_loser=gambler1
-                                
+
                                 gamble_msg_embed['color'] = 0x00ff00
                                 gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
                                 dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
                                 dice_roll_embed.add_field(
                                     name = "Roll Results:", 
                                     value = (
-                                        f"{ctx.author.mention} 🎲{gambler1_roll} \n"
-                                        f"{user.mention} 🎲{gambler2_roll}"), inline = False)
+                                        f"{ctx.message.author.mention} 🎲{gambler1_roll} \n"
+                                        f"{target_user.mention} 🎲{gambler2_roll}"), inline = False)
                                 dice_roll_embed.add_field(
                                     name = "Winner is: ", 
                                     value = gamble_winner, inline = True)
@@ -568,7 +354,7 @@ async def betAnyone(ctx, pot):
                                     name = "Loser is: ", 
                                     value = gamble_loser, inline = True)
                                 dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
-                                
+
                                 query = """
                                     INSERT INTO gambling_log 
                                         (date, pot, name) 
@@ -579,6 +365,7 @@ async def betAnyone(ctx, pot):
 
                                 await gamble_msg.edit(embed=dice_roll_embed)
                                 await gamble_msg.add_reaction(u"\U0001F4AF")
+
                             else:
                                 gamble_msg_embed['color'] = 0x0000ff
                                 gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
@@ -587,11 +374,234 @@ async def betAnyone(ctx, pot):
                                     name = "Roll Results:", 
                                     value = (
                                         f"{ctx.author.mention} 🎲{gambler1_roll} \n" 
-                                        f"{user.mention} 🎲{gambler2_roll}"), inline=True)
+                                        f"{target_user.mention} 🎲{gambler2_roll}"), inline=True)
                                 dice_roll_embed.add_field(name="Winner is: ", 
                                     value= "Tie, no balance changes!", inline=False)
                                 await gamble_msg.edit(embed=dice_roll_embed)
                                 await gamble_msg.add_reaction(u"\U0001F4AF")
+    except Exception:
+        logger.error(f"========on bet START=======")
+        logger.error(traceback.format_exc())
+        logger.error(f"========on bet END=========")
+
+
+@bot.command()
+@commands.cooldown(3, 20, commands.BucketType.channel)
+async def betAnyone(ctx, pot):
+    """example: g!bet 100K
+    """
+    try:
+        await ctx.message.delete()
+        pot = convert_si_to_number(pot)
+        if ctx.message.channel.id != 815104636708323332:
+            await ctx.message.channel.send("You can only gamble in <#815104636708323332>")
+        elif pot<1000 or pot == None:
+            em = discord.Embed(title="❌ Bet too low",
+                                description="The minimum amount for betting is 1000 !",
+                                color=discord.Color.red())
+            await ctx.message.channel.send(embed=em, delete_after=5)
+        else:
+            gamble_embed=discord.Embed(title="💰Gamble info💰", description="", color=0x4feb1c)
+            gamble_embed.set_thumbnail(
+                url="https://cdn.discordapp.com/avatars/634917649335320586/ea303e8b580d56ff6837e256b1df6ef6.png")
+            gamble_embed.add_field(name="**Initiated By: **", 
+                value=ctx.author.mention, inline=True)
+            gamble_embed.add_field(name="**For the amount of: **", 
+                value=f"{pot:,d}", inline=True)
+            gamble_embed.set_footer(text=f"Timestamp: {datetime.now(timezone.utc).replace(microsecond=0)}")
+            gamble_msg = await ctx.message.channel.send(embed=gamble_embed)
+            gamble_msg_embed = gamble_msg.embeds[0].to_dict()
+            
+            await gamble_msg.add_reaction(u"\U0001F44D")
+            def check(reaction, user):
+                m = gamble_msg
+                return str(reaction.emoji) == '👍' and m.id == reaction.message.id and not user.bot
+
+            try:
+                reaction, user = await bot.wait_for('reaction_add', timeout=15.0, check=check)
+            except asyncio.TimeoutError:
+                gamble_msg_embed['color'] = 0xff0000
+                gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
+                time_out = discord.Embed.from_dict(gamble_msg_embed)
+                time_out.add_field(name = "❌TIME OUT❌", 
+                    value = "No one responded in time, bet is cancelled!", inline = False)
+                await gamble_msg.edit(embed=time_out)
+                await gamble_msg.clear_reaction(u"\U0001F44D")
+                await gamble_msg.add_reaction(u"\u274C")
+            else:
+                name, realm = await checkPers(ctx.author.id)
+                if name is not None:
+                    gambler1 = f"{name}-{realm}"
+                else:
+                    if "-" not in ctx.author.nick:
+                        em = discord.Embed(title="❌",
+                            description=f"Nickname format not correct for {ctx.author}",
+                            color=discord.Color.red())
+                        await ctx.send(embed=em, delete_after=5)
+                        await gamble_msg.delete()
+                        raise ValueError(f"Nickname format not correct for {ctx.author}")
+                    gambler1 = ctx.author.nick
+
+                name, realm = await checkPers(user.id)
+                if name is not None:
+                    gambler2 = f"{name}-{realm}"
+                else:
+                    if "-" not in user.nick:
+                        em = discord.Embed(title="❌",
+                            description=f"Nickname format not correct for {user}",
+                            color=discord.Color.red())
+                        await ctx.send(embed=em, delete_after=5)
+                        await gamble_msg.delete()
+                        raise ValueError(f"Nickname format not correct for {user}")
+                    gambler2 = user.nick
+                        
+                if gambler1==gambler2:
+                    em = discord.Embed(title="❌ Can't bet against your self",
+                            description="Unless you can duplicate your self IRL!",
+                            color=discord.Color.red())
+                    await ctx.send(embed=em, delete_after=5)
+                    await gamble_msg.delete()
+                else:
+                    async with ctx.bot.casino_pool.acquire() as conn:
+                        async with conn.cursor() as cursor:
+                            query = """
+                                SELECT COALESCE((
+                                    SELECT cur_balance 
+                                    FROM ov_creds 
+                                    WHERE booster = %s
+                                    ),0) cb
+                            """
+                            val = (gambler1,)
+                            await cursor.execute(query, val)
+                            (gambler1_balance,) = await cursor.fetchone()
+
+                            query = """
+                                SELECT COALESCE((
+                                    SELECT cur_balance 
+                                    FROM ov_creds 
+                                    WHERE booster = %s
+                                    ),0) cb
+                            """
+                            val = (gambler2,)
+                            await cursor.execute(query, val)
+                            (gambler2_balance,) = await cursor.fetchone()
+
+                            if gambler1_balance < pot:
+                                gamble_msg_embed['color'] = 0xff0000
+                                gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
+                                not_enough_bal = discord.Embed.from_dict(gamble_msg_embed)
+                                not_enough_bal.add_field(
+                                    name = "❌NOT ENOUGH BALANCE❌", 
+                                    value = (
+                                        f"{ctx.author.mention} doesn't have enough balance to cover the bet, "
+                                        "bet is cancelled!"), 
+                                    inline = False)
+                                await gamble_msg.edit(embed=not_enough_bal)
+                                await gamble_msg.clear_reaction(u"\U0001F44D")
+                                await gamble_msg.add_reaction(u"\u274C")
+                            elif gambler2_balance < pot:
+                                gamble_msg_embed['color'] = 0xff0000
+                                gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
+                                not_enough_bal = discord.Embed.from_dict(gamble_msg_embed)
+                                not_enough_bal.add_field(
+                                    name = "❌NOT ENOUGH BALANCE❌", 
+                                    value = (
+                                        f"{user.mention} doesn't have enough balance to cover the bet, "
+                                        "bet is cancelled!"), 
+                                    inline = False)
+                                await gamble_msg.edit(embed=not_enough_bal)
+                                await gamble_msg.clear_reaction(u"\U0001F44D")
+                                await gamble_msg.add_reaction(u"\u274C")
+                            else:
+                                now = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None)
+                                gambler1_roll = randint(1, 6)
+                                gambler2_roll = randint(1, 6)
+                                if gambler1_roll>gambler2_roll:
+                                    gamble_winner=gambler1
+                                    gamble_loser=gambler2
+
+                                    gamble_msg_embed['color'] = 0x00ff00
+                                    gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
+                                    dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
+                                    dice_roll_embed.add_field(
+                                        name = "Roll Results:", 
+                                        value = (
+                                            f"{ctx.author.mention} 🎲{gambler1_roll} \n"
+                                            f"{user.mention} 🎲{gambler2_roll}"), inline = False)
+                                    dice_roll_embed.add_field(
+                                        name = "Winner is: ", 
+                                        value = gamble_winner, inline = True)
+                                    dice_roll_embed.add_field(
+                                        name = "Win Amount: ", 
+                                        value = f"{(pot*2) - (pot*2*0.05):,.0f}", inline = True)
+                                    dice_roll_embed.add_field(name = "--", value = "--" , inline = False)
+                                    dice_roll_embed.add_field(
+                                        name = "Loser is: ", 
+                                        value = gamble_loser, inline = True)
+                                    dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
+                                    
+                                    query = """
+                                        INSERT INTO gambling_log 
+                                            (date, pot, name) 
+                                        VALUES (%s, %s, %s)
+                                    """
+                                    val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                    await cursor.executemany(query,val)
+
+                                    await gamble_msg.edit(embed=dice_roll_embed)
+                                    await gamble_msg.add_reaction(u"\U0001F4AF")
+                                    
+                                elif gambler2_roll>gambler1_roll:
+                                    gamble_winner=gambler2
+                                    gamble_loser=gambler1
+                                    
+                                    gamble_msg_embed['color'] = 0x00ff00
+                                    gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
+                                    dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
+                                    dice_roll_embed.add_field(
+                                        name = "Roll Results:", 
+                                        value = (
+                                            f"{ctx.author.mention} 🎲{gambler1_roll} \n"
+                                            f"{user.mention} 🎲{gambler2_roll}"), inline = False)
+                                    dice_roll_embed.add_field(
+                                        name = "Winner is: ", 
+                                        value = gamble_winner, inline = True)
+                                    dice_roll_embed.add_field(
+                                        name = "Win Amount: ", 
+                                        value = f"{(pot*2) - (pot*2*0.05):,.0f}", inline = True)
+                                    dice_roll_embed.add_field(name = "--", value = "--" , inline = False)
+                                    dice_roll_embed.add_field(
+                                        name = "Loser is: ", 
+                                        value = gamble_loser, inline = True)
+                                    dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
+                                    
+                                    query = """
+                                        INSERT INTO gambling_log 
+                                            (date, pot, name) 
+                                        VALUES (%s, %s, %s)
+                                    """
+                                    val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                    await cursor.executemany(query,val)
+
+                                    await gamble_msg.edit(embed=dice_roll_embed)
+                                    await gamble_msg.add_reaction(u"\U0001F4AF")
+                                else:
+                                    gamble_msg_embed['color'] = 0x0000ff
+                                    gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
+                                    dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
+                                    dice_roll_embed.add_field(
+                                        name = "Roll Results:", 
+                                        value = (
+                                            f"{ctx.author.mention} 🎲{gambler1_roll} \n" 
+                                            f"{user.mention} 🎲{gambler2_roll}"), inline=True)
+                                    dice_roll_embed.add_field(name="Winner is: ", 
+                                        value= "Tie, no balance changes!", inline=False)
+                                    await gamble_msg.edit(embed=dice_roll_embed)
+                                    await gamble_msg.add_reaction(u"\U0001F4AF")
+    except Exception:
+        logger.error(f"========on betAnyone START=======")
+        logger.error(traceback.format_exc())
+        logger.error(f"========on betAnyone END=========")
 
 
 @bot.command()
