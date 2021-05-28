@@ -146,6 +146,7 @@ async def on_ready():
     if running==False:
         logger.info(f'{bot.user.name} {discord.__version__} has connected to Discord!')
         guild = bot.get_guild(GUILD_ID)
+        logger.info(f"{guild.name}")
         bot_log_channel = (get(guild.text_channels, id=817552283209433098) or 
                         get(guild.text_channels, name='bot-logs'))
         embed_bot_log = discord.Embed(
