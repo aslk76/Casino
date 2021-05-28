@@ -141,8 +141,7 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandOnCooldown):
         await ctx.message.delete()
         em = discord.Embed(title="❌ On Cooldown",
-                           description="{ctx.command.name} is on cooldown, please try again in {:.2f}s".format(
-                               error.retry_after),
+                           description=f"{ctx.command.name} is on cooldown, please try again in {error.retry_after:.2f}s",
                            color=discord.Color.red())
         await ctx.send(embed=em, delete_after=5)
     logger.error(f"========on {ctx.command.name} START=======")
