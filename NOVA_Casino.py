@@ -277,7 +277,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                         return user == target_user and str(reaction.emoji) == '👍' and m.id == reaction.message.id
 
                     try:
-                        reaction, user = await bot.wait_for('reaction_add', timeout=15.0, check=check)
+                        reaction, user = await ctx.bot.wait_for('reaction_add', timeout=15.0, check=check)
                     except asyncio.TimeoutError:
                         gamble_msg_embed['color'] = 0xff0000
                         gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
@@ -412,7 +412,7 @@ async def betAnyone(ctx, pot):
             return str(reaction.emoji) == '👍' and m.id == reaction.message.id and not user.bot
 
         try:
-            reaction, user = await bot.wait_for('reaction_add', timeout=15.0, check=check)
+            reaction, user = await ctx.bot.wait_for('reaction_add', timeout=15.0, check=check)
         except asyncio.TimeoutError:
             gamble_msg_embed['color'] = 0xff0000
             gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
