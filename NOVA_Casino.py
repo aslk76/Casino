@@ -80,6 +80,24 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(name)s -
 logger.addHandler(handler)
 
 
+async def checkPers(id :int):
+    async with bot.mplus_pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            query = """
+                SELECT name , serv FROM persdict WHERE discord_id = %s
+            """
+            val = (id,)
+            await cursor.execute(query,val)
+            result = await cursor.fetchone()
+            if result is not None:
+                name = result[0]
+                realm = result[1]
+            else:
+                name = None
+                realm = None
+    return (name, realm)
+
+
 @bot.event
 async def on_error(event, *args, **kwargs):
     logger.error(f"========On {event} error START=======")
