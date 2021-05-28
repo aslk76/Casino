@@ -23,24 +23,6 @@ def convert_si_to_number(i):
     return int(total_stars)
 
 
-async def search_nested_alliance(mylist, val):
-    for i in range(len(mylist)):
-        for j in range(len(mylist[i])):
-            # print i,j
-            if mylist[i][j] == val:
-                return mylist[i][0]
-    return None
-
-
-async def search_nested_horde(mylist, val):
-    for i in range(len(mylist)):
-        for j in range(len(mylist[i])):
-            # print i,j
-            if mylist[i][j] == val:
-                return mylist[i][1]
-    return None
-
-
 async def checkPers(id :int):
     async with bot.mplus_pool.acquire() as conn:
         async with conn.cursor() as cursor:
@@ -57,29 +39,3 @@ async def checkPers(id :int):
                 name = None
                 realm = None
     return (name, realm)
-
-
-async def get_embedded_fields(message=None, **kwargs):
-    if not message:
-        channel = kwargs.get('channel')
-        message_id = kwargs.get('id')
-
-        if channel and message_id:
-            message = await channel.fetch_message(message_id)
-
-    # If we could not retrieve a valid message, return
-    if not message:
-        return
-
-    return message.embeds[0] and message.embeds[0].to_dict()['fields']
-
-
-async def record_usage(ctx):
-    async with ctx.bot.ops_pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            query = """
-                INSERT INTO commands_log (command_author, command_name, command_args, command_date) 
-                VALUES (%s, %s, %s, %s)
-            """
-            val = (ctx.author.display_name, ctx.command.name, ', '.join(ctx.args[1:]), ctx.message.created_at.replace(microsecond=0))
-            await cursor.execute(query, val)
