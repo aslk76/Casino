@@ -323,7 +323,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                                                 (operation_id, date, name, realm, operation, command, reason, amount, author)
                                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                                         """
-                                        val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', f"{(pot*2) - (pot*2*0.05):,.0f}", 'NOVA_Casino')
+                                        val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', f"{(pot*2) - (pot*2*0.05)::,d}", 'NOVA_Casino')
                                         await cursor.execute(query, val)
                                         query = """
                                            INSERT INTO balance_ops
@@ -373,7 +373,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                                                 (operation_id, date, name, realm, operation, command, reason, amount, author)
                                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                                         """
-                                        val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', f"{(pot*2) - (pot*2*0.05):,.0f}", 'NOVA_Casino')
+                                        val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', f"{(pot*2) - (pot*2*0.05)::,d}", 'NOVA_Casino')
                                         await cursor.execute(query, val)
                                         query = """
                                            INSERT INTO balance_ops
