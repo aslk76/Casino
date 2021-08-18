@@ -353,17 +353,18 @@ async def bet(ctx, target_user : discord.Member, pot):
                                     name = "Loser is: ", 
                                     value = gamble_loser, inline = True)
                                 dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
+                                async with ctx.bot.casino_pool.acquire() as conn:
+                                    async with conn.cursor() as cursor:
+                                        query = """
+                                            INSERT INTO gambling_log 
+                                                (date, pot, name) 
+                                            VALUES (%s, %s, %s)
+                                        """
+                                        val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                        await cursor.executemany(query,val)
 
-                                query = """
-                                    INSERT INTO gambling_log 
-                                        (date, pot, name) 
-                                    VALUES (%s, %s, %s)
-                                """
-                                val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
-                                await cursor.executemany(query,val)
-
-                                await gamble_msg.edit(embed=dice_roll_embed)
-                                await gamble_msg.add_reaction(u"\U0001F4AF")
+                                        await gamble_msg.edit(embed=dice_roll_embed)
+                                        await gamble_msg.add_reaction(u"\U0001F4AF")
 
                             elif gambler2_roll>gambler1_roll:
                                 gamble_winner=gambler2
@@ -405,17 +406,18 @@ async def bet(ctx, target_user : discord.Member, pot):
                                     name = "Loser is: ", 
                                     value = gamble_loser, inline = True)
                                 dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
+                                async with ctx.bot.casino_pool.acquire() as conn:
+                                    async with conn.cursor() as cursor:
+                                        query = """
+                                            INSERT INTO gambling_log 
+                                                (date, pot, name) 
+                                            VALUES (%s, %s, %s)
+                                        """
+                                        val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                        await cursor.executemany(query,val)
 
-                                query = """
-                                    INSERT INTO gambling_log 
-                                        (date, pot, name) 
-                                    VALUES (%s, %s, %s)
-                                """
-                                val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
-                                await cursor.executemany(query,val)
-
-                                await gamble_msg.edit(embed=dice_roll_embed)
-                                await gamble_msg.add_reaction(u"\U0001F4AF")
+                                        await gamble_msg.edit(embed=dice_roll_embed)
+                                        await gamble_msg.add_reaction(u"\U0001F4AF")
 
                             else:
                                 gamble_msg_embed['color'] = 0x0000ff
