@@ -368,7 +368,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                                 gamble_loser=gambler1
                                 async with ctx.bot.mplus_pool.acquire() as conn:
                                     async with conn.cursor() as cursor:
-                                        winner_pot = f"{(pot*2) - (pot*2*0.05):,d}"
+                                        winner_pot = ((pot*2) - (pot*2*0.05)).replace(".", "").replace(",", "")
                                         query = """
                                            INSERT INTO balance_ops
                                                 (operation_id, date, name, realm, operation, command, reason, amount, author)
@@ -376,7 +376,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                                         """
                                         val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
                                         await cursor.execute(query, val)
-                                        loser_pot = f"{pot:,d}"
+                                        loser_pot = pot.replace(".", "").replace(",", "")
                                         query = """
                                            INSERT INTO balance_ops
                                                 (operation_id, date, name, realm, operation, command, reason, amount, author)
