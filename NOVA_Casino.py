@@ -416,7 +416,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                                     async with conn.cursor() as cursor:
                                         query = """
                                             INSERT INTO gambling_wins 
-                                                (date, pot, name) 
+                                                (date, pot, idgamble) 
                                             VALUES (%s, %s, %s)
                                         """
                                         val = (now, pot*2*0.05, ctx.message.id)
