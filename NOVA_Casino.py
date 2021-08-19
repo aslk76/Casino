@@ -128,6 +128,7 @@ async def on_command_error(ctx, error):
                            description="",
                            color=discord.Color.red())
         await ctx.send(embed=em, delete_after=5)
+        await ctx.message.delete()
     elif isinstance(error, commands.BadArgument):
         em = discord.Embed(title="❌ Bad arguments",
                            description=error,
