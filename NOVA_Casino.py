@@ -788,7 +788,16 @@ async def lottery(ctx):
                     """
                     val = (now,-50000,lottery_user)
                     await cursor.execute(query,val)
-                    
+                    async with ctx.bot.mplus_pool.acquire() as conn:
+                        async with conn.cursor() as cursor:
+                            query = """
+                            INSERT INTO balance_ops
+                                    (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """
+                            val = (ctx.message.id, now, lottery_user.split("-")[0], lottery_user.split("-")[1], 'Deduction', 'Lottery', 'Lottery Ticket', -50000, 'NOVA_Casino')
+                            await cursor.execute(query, val)
+                            await asyncio.sleep(1)
                     query = """SELECT COALESCE((
                         SELECT ABS(SUM(pot)) FROM `nova_casino`.`lottery_log` 
                         WHERE `date` BETWEEN 
@@ -811,7 +820,7 @@ async def lottery(ctx):
 
 
 @bot.command()
-@commands.has_any_role('Moderator')
+@commands.has_any_role('developer','Moderator')
 async def sendEmbed(ctx):
     await ctx.message.delete()
     lottery_embed=discord.Embed(title="💰Lottery info💰", description="", color=0x4feb1c)
@@ -823,7 +832,7 @@ async def sendEmbed(ctx):
 
 
 @bot.command()
-@commands.has_any_role('Moderator')
+@commands.has_any_role('developer','Moderator')
 async def resetEmbed(ctx, price: str):
     await ctx.message.delete()
     lottery_channel = get(ctx.guild.text_channels, id=815104636708323331)
@@ -839,7 +848,7 @@ async def resetEmbed(ctx, price: str):
 
 
 @bot.command()
-@commands.has_any_role('Moderator')
+@commands.has_any_role('developer', 'Moderator')
 async def pickWinners(ctx):
     async with ctx.bot.casino_pool.acquire() as conn:
         async with conn.cursor() as cursor:
@@ -863,7 +872,7 @@ async def pickWinners(ctx):
             """
             await cursor.execute(query)
             (lottery_pot,) = await cursor.fetchone()
-
+            now = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None)
             lottery_winner_1 = get(ctx.guild.members, nick=' '.join(map(str,winners_list[0])))
             lottery_winner_2 = get(ctx.guild.members, nick=' '.join(map(str,winners_list[1])))
             lottery_winner_3 = get(ctx.guild.members, nick=' '.join(map(str,winners_list[2])))
@@ -884,7 +893,23 @@ async def pickWinners(ctx):
                     f"<:goldss:817570131193888828> {int(lottery_pot*5/100):,d}", inline=False)
             lottery_embed.set_footer(text=f"Timestamp  {datetime.now(timezone.utc).replace(microsecond=0)}")
             await ctx.message.channel.send(embed=lottery_embed)
-
+            query = """
+                INSERT INTO lottery_wins 
+                    (date, pot, idlottery) 
+                VALUES (%s, %s, %s)
+            """
+            val = (now, lottery_pot*5/100, ctx.message.id)
+            await cursor.execute(query,val)
+            async with ctx.bot.mplus_pool.acquire() as conn:
+                async with conn.cursor() as cursor:
+                    query = """
+                    INSERT INTO balance_ops
+                            (operation_id, date, name, realm, operation, command, reason, amount, author)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    val = [(ctx.message.id, now, lottery_winner_1.split("-")[0], lottery_winner_1.split("-")[1], 'Add', 'Lottery', 'Lottery Won', lottery_pot*65/100, 'NOVA_Casino'),(ctx.message.id, now, lottery_winner_1.split("-")[0], lottery_winner_1.split("-")[1], 'Add', 'Lottery', 'Lottery Won', lottery_pot*15/100, 'NOVA_Casino'),(ctx.message.id, now, lottery_winner_1.split("-")[0], lottery_winner_1.split("-")[1], 'Add', 'Lottery', 'Lottery Won', lottery_pot*5/100, 'NOVA_Casino')]
+                    await cursor.executemany(query,val)
+                    await asyncio.sleep(1)
 
 async def start_bot():
     mplus_pool = await aiomysql.create_pool(host=DB_HOST, port=DB_PORT,
