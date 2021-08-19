@@ -759,13 +759,16 @@ async def lottery(ctx):
                 await cursor.execute(query, val)
                 (lottery_user_balance,) = await cursor.fetchone()
                     
-                query = "SELECT name FROM lottery_log WHERE name = %s"
+                query = """SELECT name FROM lottery_log WHERE name = %s
+                    AND `date` BETWEEN (SELECT cur1 FROM `nova_mplus`.`variables` WHERE id = 1) AND 
+                    (SELECT cur2 FROM `nova_mplus`.`variables` WHERE id = 1)
+                """
                 val = (lottery_user,)
                 await cursor.execute(query, val)
                 (lottery_result,) = await cursor.fetchone()
 
 
-                if lottery_result > 0:
+                if lottery_result is not None:
                     em = discord.Embed(title="❌",
                         description=
                             f"{ctx.message.author.mention} you already have lottery ticket, "
