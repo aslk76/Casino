@@ -812,8 +812,7 @@ async def lottery(ctx):
                         if message.id == 877886403579621387:
                             lottery_msg = message
                             lottery_embed_pre = message.embeds[0].to_dict()
-                            lottery_embed_pre_fields = lottery_embed_pre['fields']
-                            lottery_embed_pre_fields[1].value = f"{lottery_pot:,d}"
+                            lottery_embed_pre['fields'][1]['value'] = f"{lottery_pot:,d}"
                             lottery_update_embed = discord.Embed.from_dict(lottery_embed_pre)
                     await ctx.message.channel.send(
                         f"{ctx.message.author.mention} ticket purchased, good luck", 
