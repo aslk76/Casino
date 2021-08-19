@@ -821,7 +821,7 @@ async def lottery(ctx):
 
 
 @bot.command()
-@commands.has_any_role('developer','Moderator')
+@commands.has_any_role('developer','Moderator', 'Management')
 async def sendEmbed(ctx):
     await ctx.message.delete()
     lottery_embed=discord.Embed(title="💰Lottery info💰", description="", color=0x4feb1c)
@@ -833,7 +833,7 @@ async def sendEmbed(ctx):
 
 
 @bot.command()
-@commands.has_any_role('developer','Moderator')
+@commands.has_any_role('developer','Moderator', 'Management')
 async def resetEmbed(ctx, price: str):
     await ctx.message.delete()
     lottery_channel = get(ctx.guild.text_channels, id=815104636708323331)
@@ -849,7 +849,7 @@ async def resetEmbed(ctx, price: str):
 
 
 @bot.command()
-@commands.has_any_role('developer', 'Moderator')
+@commands.has_any_role('developer', 'Moderator', 'Management')
 async def pickWinners(ctx):
     async with ctx.bot.casino_pool.acquire() as conn:
         async with conn.cursor() as cursor:
