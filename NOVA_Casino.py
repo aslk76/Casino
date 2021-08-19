@@ -810,11 +810,9 @@ async def lottery(ctx):
                             (lottery_pot,) = await cursor.fetchone()
                     async for message in lottery_channel.history(limit=50, oldest_first=True):
                         if message.id == 877886403579621387:
-                            logger.info(message.embeds[0].to_dict())
                             lottery_msg = message
                             lottery_embed_pre = message.embeds[0].to_dict()
-                            lottery_embed_pre['fields'][1]['value'] = "50000"
-                            #f"{lottery_pot:,d}"
+                            lottery_embed_pre['fields'][1]['value'] = f"{lottery_pot:,.0f}"
                             lottery_update_embed = discord.Embed.from_dict(lottery_embed_pre)
                     await ctx.message.channel.send(
                         f"{ctx.message.author.mention} ticket purchased, good luck", 
