@@ -887,7 +887,7 @@ async def pickWinners(ctx):
             lottery_embed.add_field(name="🥈", 
                 value=
                     f"**Second place:** {lottery_winner_2.mention} "
-                    f"<:goldss:817570131193888828> {int(lottery_pot*15/100):,d}", inline=False)
+                    f"<:goldss:817570131193888828> {int(lottery_pot*20/100):,d}", inline=False)
             lottery_embed.add_field(name="🥉", 
                 value=
                     f"**Third place:** {lottery_winner_3.mention} "
@@ -899,7 +899,7 @@ async def pickWinners(ctx):
                     (date, pot, idlottery) 
                 VALUES (%s, %s, %s)
             """
-            val = (now, lottery_pot*5/100, ctx.message.id)
+            val = (now, lottery_pot*10/100, ctx.message.id)
             await cursor.execute(query,val)
             async with ctx.bot.mplus_pool.acquire() as conn:
                 async with conn.cursor() as cursor:
