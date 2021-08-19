@@ -360,7 +360,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                                                 (date, pot, idgamble) 
                                             VALUES (%s, %s, %s)
                                         """
-                                        val = (now, pot*0.05, ctx.message.id)
+                                        val = (now, pot*2*0.05, ctx.message.id)
                                         await cursor.execute(query,val)
 
                                         await gamble_msg.edit(embed=dice_roll_embed)
@@ -413,7 +413,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                                                 (date, pot, idgamble) 
                                             VALUES (%s, %s, %s)
                                         """
-                                        val = (now, pot*0.05, ctx.message.id)
+                                        val = (now, pot*2*0.05, ctx.message.id)
                                         await cursor.execute(query,val)
 
                                         await gamble_msg.edit(embed=dice_roll_embed)
