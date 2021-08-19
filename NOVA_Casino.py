@@ -626,13 +626,19 @@ async def betAnyone(ctx, pot):
                                     async with ctx.bot.casino_pool.acquire() as conn:
                                         async with conn.cursor() as cursor:
                                             query = """
-                                                INSERT INTO gambling_log 
+                                                INSERT INTO gambling_wins 
                                                     (date, pot, idgamble) 
                                                 VALUES (%s, %s, %s)
                                             """
                                             val = (now, pot*2*0.05, ctx.message.id)
                                             await cursor.execute(query,val)
-
+                                            query = """
+                                                INSERT INTO gambling_log 
+                                                    (date, pot, name) 
+                                                VALUES (%s, %s, %s)
+                                            """
+                                            val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                            await cursor.executemany(query,val)
                                             await gamble_msg.edit(embed=dice_roll_embed)
                                             await gamble_msg.add_reaction(u"\U0001F4AF")
                                     
@@ -680,13 +686,19 @@ async def betAnyone(ctx, pot):
                                     async with ctx.bot.casino_pool.acquire() as conn:
                                         async with conn.cursor() as cursor:
                                             query = """
-                                                INSERT INTO gambling_log 
+                                                INSERT INTO gambling_wins 
                                                     (date, pot, idgamble) 
                                                 VALUES (%s, %s, %s)
                                             """
                                             val = (now, pot*2*0.05, ctx.message.id)
                                             await cursor.execute(query,val)
-
+                                            query = """
+                                                INSERT INTO gambling_log 
+                                                    (date, pot, name) 
+                                                VALUES (%s, %s, %s)
+                                            """
+                                            val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                            await cursor.executemany(query,val)
                                             await gamble_msg.edit(embed=dice_roll_embed)
                                             await gamble_msg.add_reaction(u"\U0001F4AF")
                                 else:
