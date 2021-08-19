@@ -800,16 +800,14 @@ async def lottery(ctx):
                             val = (ctx.message.id, now, lottery_user.split("-")[0], lottery_user.split("-")[1], 'Deduction', 'Lottery', 'Lottery Ticket', -50000, 'NOVA_Casino')
                             await cursor.execute(query, val)
                             await asyncio.sleep(1)
-                    async with ctx.bot.casino_pool.acquire() as conn:
-                        async with conn.cursor() as cursor: 
                             query = """SELECT COALESCE((
                                 SELECT ABS(SUM(pot)) FROM `nova_casino`.`lottery_log` 
                                 WHERE `date` BETWEEN 
                                     (SELECT cur1 FROM `nova_mplus`.`variables` WHERE id = 1) AND 
                                     (SELECT cur2 FROM `nova_mplus`.`variables` WHERE id = 1)),0)
                             """
-                        await cursor.execute(query)
-                        (lottery_pot,) = await cursor.fetchone()
+                            await cursor.execute(query)
+                            (lottery_pot,) = await cursor.fetchone()
                     async for message in lottery_channel.history(limit=50, oldest_first=True):
                         if message.id == 847745930563944468:
                             lottery_msg = message
