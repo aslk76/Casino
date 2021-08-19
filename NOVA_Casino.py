@@ -181,7 +181,7 @@ async def Logout(ctx):
 
 
 @bot.command()
-@commands.cooldown(3, 20, commands.BucketType.channel)
+@commands.cooldown(3, 10, commands.BucketType.channel)
 async def bet(ctx, target_user : discord.Member, pot):
     """example: g!bet @ASLK76#2188 100K
     """
@@ -454,7 +454,7 @@ async def bet(ctx, target_user : discord.Member, pot):
 
 
 @bot.command()
-@commands.cooldown(3, 20, commands.BucketType.channel)
+@commands.cooldown(3, 10, commands.BucketType.channel)
 async def betAnyone(ctx, pot):
     """example: g!bet 100K
     """
