@@ -784,7 +784,6 @@ async def lottery(ctx):
                 else:
                     now = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None)
                     lottery_user_balance = lottery_user_balance - 50000
-                    
                     query = """
                         INSERT INTO lottery_log (date, pot, name) 
                         VALUES (%s, %s, %s)
@@ -801,12 +800,13 @@ async def lottery(ctx):
                             val = (ctx.message.id, now, lottery_user.split("-")[0], lottery_user.split("-")[1], 'Deduction', 'Lottery', 'Lottery Ticket', -50000, 'NOVA_Casino')
                             await cursor.execute(query, val)
                             await asyncio.sleep(1)
-                    query = """SELECT COALESCE((
-                        SELECT ABS(SUM(pot)) FROM `nova_casino`.`lottery_log` 
-                        WHERE `date` BETWEEN 
-                            (SELECT cur1 FROM `nova_mplus`.`variables` WHERE id = 1) AND 
-                            (SELECT cur2 FROM `nova_mplus`.`variables` WHERE id = 1)),0)
-                    """
+                    async with conn.cursor() as cursor: 
+                        query = """SELECT COALESCE((
+                            SELECT ABS(SUM(pot)) FROM `nova_casino`.`lottery_log` 
+                            WHERE `date` BETWEEN 
+                                (SELECT cur1 FROM `nova_mplus`.`variables` WHERE id = 1) AND 
+                                (SELECT cur2 FROM `nova_mplus`.`variables` WHERE id = 1)),0)
+                        """
                     await cursor.execute(query)
                     (lottery_pot,) = await cursor.fetchone()
                     async for message in lottery_channel.history(limit=50, oldest_first=True):
