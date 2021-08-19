@@ -326,6 +326,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                                         """
                                         val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
                                         await cursor.execute(query, val)
+                                        await asyncio.sleep(1)
                                         loser_pot = pot
                                         query = """
                                            INSERT INTO balance_ops
@@ -385,6 +386,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                                         """
                                         val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
                                         await cursor.execute(query, val)
+                                        await asyncio.sleep(1)
                                         loser_pot = pot
                                         query = """
                                            INSERT INTO balance_ops
@@ -595,6 +597,7 @@ async def betAnyone(ctx, pot):
                                             """
                                             val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
                                             await cursor.execute(query, val)
+                                            await asyncio.sleep(1)
                                             loser_pot = pot
                                             query = """
                                             INSERT INTO balance_ops
@@ -631,7 +634,7 @@ async def betAnyone(ctx, pot):
                                                 VALUES (%s, %s, %s)
                                             """
                                             val = (now, pot*2*0.05, ctx.message.id)
-                                            await cursor.execute(query,val)
+                                            await cursor.execute(query,val)                                     
                                             query = """
                                                 INSERT INTO gambling_log 
                                                     (date, pot, name) 
@@ -655,6 +658,7 @@ async def betAnyone(ctx, pot):
                                             """
                                             val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
                                             await cursor.execute(query, val)
+                                            await asyncio.sleep(1)
                                             loser_pot = pot
                                             query = """
                                             INSERT INTO balance_ops
