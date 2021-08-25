@@ -844,7 +844,7 @@ async def resetEmbed(ctx, price: str):
     await ctx.message.delete()
     lottery_channel = get(ctx.guild.text_channels, id=815104636708323331)
     async for message in lottery_channel.history(limit=50, oldest_first=True):
-        if message.id == 877886403579621387:
+        if message.id == 880024995307339846:
             lottery_msg = message
             lottery_embed_pre = message.embeds[0].to_dict()
             lottery_embed_pre_fields = lottery_embed_pre['fields']
