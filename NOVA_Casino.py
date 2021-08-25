@@ -914,7 +914,7 @@ async def pickWinners(ctx):
                             (operation_id, date, name, realm, operation, command, reason, amount, author)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
-                    val = [(ctx.message.id, now, lottery_winner_1.nick.split("-")[0], lottery_winner_1.nick.split("-")[1], 'Add', 'Lottery', 'Lottery Won', lottery_pot*65/100, 'NOVA_Casino'),(ctx.message.id, now, lottery_winner_2.nick.split("-")[0], lottery_winner_2.nick.split("-")[1], 'Add', 'Lottery', 'Lottery Won', lottery_pot*15/100, 'NOVA_Casino'),(ctx.message.id, now, lottery_winner_3.nick.split("-")[0], lottery_winner_3.nick.split("-")[1], 'Add', 'Lottery', 'Lottery Won', lottery_pot*5/100, 'NOVA_Casino')]
+                    val = [(ctx.message.id, now, lottery_winner_1.nick.split("-")[0], lottery_winner_1.nick.split("-")[1], 'Add', 'Lottery', 'Lottery Won', lottery_pot*65/100, 'NOVA_Casino'),(ctx.message.id, now, lottery_winner_2.nick.split("-")[0], lottery_winner_2.nick.split("-")[1], 'Add', 'Lottery', 'Lottery Won', lottery_pot*20/100, 'NOVA_Casino'),(ctx.message.id, now, lottery_winner_3.nick.split("-")[0], lottery_winner_3.nick.split("-")[1], 'Add', 'Lottery', 'Lottery Won', lottery_pot*5/100, 'NOVA_Casino')]
                     await cursor.executemany(query,val)
                     await asyncio.sleep(1)
 
