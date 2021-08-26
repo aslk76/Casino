@@ -815,7 +815,7 @@ async def lottery(ctx):
                             await cursor.execute(query)
                             (lottery_pot,) = await cursor.fetchone()
                     async for message in lottery_channel.history(limit=50, oldest_first=True):
-                        if message.id == 877886403579621387:
+                        if message.id == 880024995307339846:
                             lottery_msg = message
                             lottery_embed_pre = message.embeds[0].to_dict()
                             lottery_embed_pre['fields'][1]['value'] = f"{lottery_pot:,.0f}"
