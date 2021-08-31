@@ -747,6 +747,14 @@ async def lottery(ctx):
     """example: g!lottery
     """
     await ctx.message.delete()
+    nova_role = get(ctx.guild.roles, name="NOVA")
+    moderator_role = get(ctx.guild.roles, name="Moderator")
+    management_role = get(ctx.guild.roles, name="Management")
+    staff_role = get(ctx.guild.roles, name="Staff")
+    managementNA_role = get(ctx.guild.roles, name="Management NA")
+    staffNA_role = get(ctx.guild.roles, name="Staff NA")
+    CS_role = get(ctx.guild.roles, name = "Community Support")
+    CSNA_role = get(ctx.guild.roles, name= "Community Support NA")
     lottery_channel = get(ctx.guild.text_channels, id=815104636708323331)
     if ctx.message.channel.id != 815104636708323331:
         await ctx.message.channel.send("You can only buy a ticket in <#815104636708323331>")
@@ -762,80 +770,86 @@ async def lottery(ctx):
                 await ctx.send(embed=em, delete_after=5)
                 raise ValueError(f"Nickname format not correct for {ctx.author}")
             lottery_user = ctx.author.nick
-
-        async with bot.casino_pool.acquire() as conn:
-            async with conn.cursor() as cursor:
-                query = """
-                    SELECT COALESCE((
-                        SELECT cur_balance 
-                        FROM `nova_mplus`.`ov_creds` 
-                        WHERE booster = %s
-                        ),0) cb
-                """
-                val = (lottery_user,)
-                await cursor.execute(query, val)
-                (lottery_user_balance,) = await cursor.fetchone()
-                    
-                query = """SELECT COALESCE((SELECT pot FROM lottery_log WHERE name = %s
-                    AND `date` BETWEEN (SELECT cur1 FROM `nova_mplus`.`variables` WHERE id = 1) AND 
-                    (SELECT cur2 FROM `nova_mplus`.`variables` WHERE id = 1)),0)
-                """
-                val = (lottery_user,)
-                await cursor.execute(query, val)
-                (lottery_result,) = await cursor.fetchone()
-
-
-                if lottery_result < 0:
-                    em = discord.Embed(title="❌",
-                        description=
-                            f"{ctx.message.author.mention} you already have lottery ticket, "
-                            "***1*** ticket per member __only__.",
-                        color=discord.Color.red())
-                    await ctx.send(embed=em, delete_after=5)
-                elif lottery_user_balance < 50000:
-                    em = discord.Embed(title="❌",
-                        description=
-                            f"{ctx.author.mention} you don't have enough balance to buy a ticket.",
-                        color=discord.Color.red())
-                    await ctx.send(embed=em, delete_after=5)
-                else:
-                    now = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None)
-                    lottery_user_balance = lottery_user_balance - 50000
+        if not (nova_role in ctx.author.roles or moderator_role in ctx.author.roles or
+            management_role in ctx.author.roles or staff_role in ctx.author.roles or
+            staffNA_role in ctx.author.roles or managementNA_role in ctx.author.roles or
+            CS_role in ctx.author.roles or CSNA_role in ctx.author.roles):   
+            async with bot.casino_pool.acquire() as conn:
+                async with conn.cursor() as cursor:
                     query = """
-                        INSERT INTO lottery_log (date, pot, name) 
-                        VALUES (%s, %s, %s)
+                        SELECT COALESCE((
+                            SELECT cur_balance 
+                            FROM `nova_mplus`.`ov_creds` 
+                            WHERE booster = %s
+                            ),0) cb
                     """
-                    val = (now,-50000,lottery_user)
-                    await cursor.execute(query,val)
-                    async with bot.mplus_pool.acquire() as conn:
-                        async with conn.cursor() as cursor:
-                            query = """
-                            INSERT INTO balance_ops
-                                    (operation_id, date, name, realm, operation, command, reason, amount, author)
-                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            """
-                            val = (ctx.message.id, now, lottery_user.split("-")[0], lottery_user.split("-")[1], 'Deduction', 'Lottery', 'Lottery Ticket', -50000, 'NOVA_Casino')
-                            await cursor.execute(query, val)
-                            await asyncio.sleep(1)
-                            query = """SELECT COALESCE((
-                                SELECT ABS(SUM(pot)) FROM `nova_casino`.`lottery_log` 
-                                WHERE `date` BETWEEN 
-                                    (SELECT cur1 FROM `nova_mplus`.`variables` WHERE id = 1) AND 
-                                    (SELECT cur2 FROM `nova_mplus`.`variables` WHERE id = 1)),0)
-                            """
-                            await cursor.execute(query)
-                            (lottery_pot,) = await cursor.fetchone()
-                    async for message in lottery_channel.history(limit=50, oldest_first=True):
-                        if message.id == 880024995307339846:
-                            lottery_msg = message
-                            lottery_embed_pre = message.embeds[0].to_dict()
-                            lottery_embed_pre['fields'][1]['value'] = f"{lottery_pot:,.0f}"
-                            lottery_update_embed = discord.Embed.from_dict(lottery_embed_pre)
-                    await ctx.message.channel.send(
-                        f"{ctx.message.author.mention} ticket purchased, good luck", 
-                        delete_after=10)
-                    await lottery_msg.edit(embed=lottery_update_embed)
+                    val = (lottery_user,)
+                    await cursor.execute(query, val)
+                    (lottery_user_balance,) = await cursor.fetchone()
+                        
+                    query = """SELECT COALESCE((SELECT pot FROM lottery_log WHERE name = %s
+                        AND `date` BETWEEN (SELECT cur1 FROM `nova_mplus`.`variables` WHERE id = 1) AND 
+                        (SELECT cur2 FROM `nova_mplus`.`variables` WHERE id = 1)),0)
+                    """
+                    val = (lottery_user,)
+                    await cursor.execute(query, val)
+                    (lottery_result,) = await cursor.fetchone()
 
+
+                    if lottery_result < 0:
+                        em = discord.Embed(title="❌",
+                            description=
+                                f"{ctx.message.author.mention} you already have lottery ticket, "
+                                "***1*** ticket per member __only__.",
+                            color=discord.Color.red())
+                        await ctx.send(embed=em, delete_after=5)
+                    elif lottery_user_balance < 50000:
+                        em = discord.Embed(title="❌",
+                            description=
+                                f"{ctx.author.mention} you don't have enough balance to buy a ticket.",
+                            color=discord.Color.red())
+                        await ctx.send(embed=em, delete_after=5)
+                    else:
+                        now = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None)
+                        lottery_user_balance = lottery_user_balance - 50000
+                        query = """
+                            INSERT INTO lottery_log (date, pot, name) 
+                            VALUES (%s, %s, %s)
+                        """
+                        val = (now,-50000,lottery_user)
+                        await cursor.execute(query,val)
+                        async with bot.mplus_pool.acquire() as conn:
+                            async with conn.cursor() as cursor:
+                                query = """
+                                INSERT INTO balance_ops
+                                        (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """
+                                val = (ctx.message.id, now, lottery_user.split("-")[0], lottery_user.split("-")[1], 'Deduction', 'Lottery', 'Lottery Ticket', -50000, 'NOVA_Casino')
+                                await cursor.execute(query, val)
+                                await asyncio.sleep(1)
+                                query = """SELECT COALESCE((
+                                    SELECT ABS(SUM(pot)) FROM `nova_casino`.`lottery_log` 
+                                    WHERE `date` BETWEEN 
+                                        (SELECT cur1 FROM `nova_mplus`.`variables` WHERE id = 1) AND 
+                                        (SELECT cur2 FROM `nova_mplus`.`variables` WHERE id = 1)),0)
+                                """
+                                await cursor.execute(query)
+                                (lottery_pot,) = await cursor.fetchone()
+                        async for message in lottery_channel.history(limit=50, oldest_first=True):
+                            if message.id == 880024995307339846:
+                                lottery_msg = message
+                                lottery_embed_pre = message.embeds[0].to_dict()
+                                lottery_embed_pre['fields'][1]['value'] = f"{lottery_pot:,.0f}"
+                                lottery_update_embed = discord.Embed.from_dict(lottery_embed_pre)
+                        await ctx.message.channel.send(
+                            f"{ctx.message.author.mention} ticket purchased, good luck", 
+                            delete_after=10)
+                        await lottery_msg.edit(embed=lottery_update_embed)
+        else:
+            await ctx.message.channel.send(
+                            f"{ctx.message.author.mention} <:TopKeK:834820771335110736>", 
+                            delete_after=5)
 
 @bot.command()
 @commands.has_any_role('developer','Moderator', 'Management')
