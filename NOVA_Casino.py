@@ -241,7 +241,7 @@ async def bet(ctx, target_user : discord.Member, pot):
                     raise ValueError(f"Nickname format not correct for {target_user}")
                 gambler2 = target_user.nick
             
-            async with bot.casino_pool.acquire() as conn:
+            async with ctx.bot.casino_pool.acquire() as conn:
                 async with conn.cursor() as cursor:
                     query = """
                         SELECT COALESCE((
@@ -317,23 +317,26 @@ async def bet(ctx, target_user : discord.Member, pot):
                             if gambler1_roll > gambler2_roll:
                                 gamble_winner = gambler1
                                 gamble_loser = gambler2
-                                async with conn.cursor() as cursor:
-                                    winner_pot = (pot - (pot*0.1))
-                                    query = """
-                                        INSERT INTO `nova_mplus`.balance_ops
-                                            (operation_id, date, name, realm, operation, command, reason, amount, author)
-                                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                    """
-                                    val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
-                                    await cursor.execute(query, val)
-                                    loser_pot = pot
-                                    query = """
-                                        INSERT INTO `nova_mplus`.balance_ops
-                                            (operation_id, date, name, realm, operation, command, reason, amount, author)
-                                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                    """
-                                    val = (ctx.message.id, now, gamble_loser.split("-")[0], gamble_loser.split("-")[1], 'Deduction', 'Casino', 'Casino bet lose', -loser_pot, 'NOVA_Casino')
-                                    await cursor.execute(query, val)
+                                async with ctx.bot.mplus_pool.acquire() as conn:
+                                    async with conn.cursor() as cursor:
+                                        winner_pot = (pot - (pot*0.1))
+                                        query = """
+                                           INSERT INTO balance_ops
+                                                (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                        """
+                                        val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
+                                        await cursor.execute(query, val)
+                                        await asyncio.sleep(1)
+                                    async with conn.cursor() as cursor:
+                                        loser_pot = pot
+                                        query = """
+                                           INSERT INTO balance_ops
+                                                (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                        """
+                                        val = (ctx.message.id, now, gamble_loser.split("-")[0], gamble_loser.split("-")[1], 'Deduction', 'Casino', 'Casino bet lose', -loser_pot, 'NOVA_Casino')
+                                        await cursor.execute(query, val)
                                 gamble_msg_embed['color'] = 0x00ff00
                                 gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
                                 dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
@@ -353,45 +356,48 @@ async def bet(ctx, target_user : discord.Member, pot):
                                     name = "Loser is: ", 
                                     value = gamble_loser, inline = True)
                                 dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
-                                async with conn.cursor() as cursor:
-                                    query = """
-                                        INSERT INTO `nova_casino`.gambling_wins 
-                                            (date, pot, idgamble) 
-                                        VALUES (%s, %s, %s)
-                                    """
-                                    val = (now, pot*2*0.05, ctx.message.id)
-                                    await cursor.execute(query,val)
-                                    query = """
-                                        INSERT INTO `nova_casino`.gambling_log 
-                                            (date, pot, name) 
-                                        VALUES (%s, %s, %s)
-                                    """
-                                    val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
-                                    await cursor.executemany(query,val)
-                                    await gamble_msg.edit(embed=dice_roll_embed)
-                                    await gamble_msg.add_reaction(u"\U0001F4AF")
+                                async with ctx.bot.casino_pool.acquire() as conn:
+                                    async with conn.cursor() as cursor:
+                                        query = """
+                                            INSERT INTO gambling_wins 
+                                                (date, pot, idgamble) 
+                                            VALUES (%s, %s, %s)
+                                        """
+                                        val = (now, pot*2*0.05, ctx.message.id)
+                                        await cursor.execute(query,val)
+                                        query = """
+                                            INSERT INTO gambling_log 
+                                                (date, pot, name) 
+                                            VALUES (%s, %s, %s)
+                                        """
+                                        val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                        await cursor.executemany(query,val)
+                                        await gamble_msg.edit(embed=dice_roll_embed)
+                                        await gamble_msg.add_reaction(u"\U0001F4AF")
 
                             elif gambler2_roll>gambler1_roll:
                                 gamble_winner=gambler2
                                 gamble_loser=gambler1
-                                async with conn.cursor() as cursor:
-                                    winner_pot = (pot - (pot*0.1))
-                                    query = """
-                                        INSERT INTO `nova_mplus`.balance_ops
-                                            (operation_id, date, name, realm, operation, command, reason, amount, author)
-                                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                    """
-                                    val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
-                                    await cursor.execute(query, val)
-
-                                    loser_pot = pot
-                                    query = """
-                                        INSERT INTO `nova_mplus`.balance_ops
-                                            (operation_id, date, name, realm, operation, command, reason, amount, author)
-                                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                    """
-                                    val = (ctx.message.id, now, gamble_loser.split("-")[0], gamble_loser.split("-")[1], 'Deduction', 'Casino', 'Casino bet lose', -loser_pot, 'NOVA_Casino')
-                                    await cursor.execute(query, val)
+                                async with ctx.bot.mplus_pool.acquire() as conn:
+                                    async with conn.cursor() as cursor:
+                                        winner_pot = (pot - (pot*0.1))
+                                        query = """
+                                           INSERT INTO balance_ops
+                                                (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                        """
+                                        val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
+                                        await cursor.execute(query, val)
+                                        await asyncio.sleep(1)
+                                    async with conn.cursor() as cursor:
+                                        loser_pot = pot
+                                        query = """
+                                           INSERT INTO balance_ops
+                                                (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                        """
+                                        val = (ctx.message.id, now, gamble_loser.split("-")[0], gamble_loser.split("-")[1], 'Deduction', 'Casino', 'Casino bet lose', -loser_pot, 'NOVA_Casino')
+                                        await cursor.execute(query, val)
                                 gamble_msg_embed['color'] = 0x00ff00
                                 gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
                                 dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
@@ -411,24 +417,25 @@ async def bet(ctx, target_user : discord.Member, pot):
                                     name = "Loser is: ", 
                                     value = gamble_loser, inline = True)
                                 dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
-                                async with conn.cursor() as cursor:
-                                    query = """
-                                        INSERT INTO `nova_casino`.gambling_wins 
-                                            (date, pot, idgamble) 
-                                        VALUES (%s, %s, %s)
-                                    """
-                                    val = (now, pot*2*0.05, ctx.message.id)
-                                    await cursor.execute(query,val)
-                                    query = """
-                                        INSERT INTO `nova_casino`.gambling_log 
-                                            (date, pot, name) 
-                                        VALUES (%s, %s, %s)
-                                    """
-                                    val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
-                                    await cursor.executemany(query,val)
+                                async with ctx.bot.casino_pool.acquire() as conn:
+                                    async with conn.cursor() as cursor:
+                                        query = """
+                                            INSERT INTO gambling_wins 
+                                                (date, pot, idgamble) 
+                                            VALUES (%s, %s, %s)
+                                        """
+                                        val = (now, pot*2*0.05, ctx.message.id)
+                                        await cursor.execute(query,val)
+                                        query = """
+                                            INSERT INTO gambling_log 
+                                                (date, pot, name) 
+                                            VALUES (%s, %s, %s)
+                                        """
+                                        val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                        await cursor.executemany(query,val)
 
-                                    await gamble_msg.edit(embed=dice_roll_embed)
-                                    await gamble_msg.add_reaction(u"\U0001F4AF")
+                                        await gamble_msg.edit(embed=dice_roll_embed)
+                                        await gamble_msg.add_reaction(u"\U0001F4AF")
 
                             else:
                                 gamble_msg_embed['color'] = 0x0000ff
@@ -526,7 +533,7 @@ async def betAnyone(ctx, pot):
                     await ctx.send(embed=em, delete_after=5)
                     await gamble_msg.delete()
                 else:
-                    async with bot.casino_pool.acquire() as conn:
+                    async with ctx.bot.casino_pool.acquire() as conn:
                         async with conn.cursor() as cursor:
                             query = """
                                 SELECT COALESCE((
@@ -583,23 +590,27 @@ async def betAnyone(ctx, pot):
                                 if gambler1_roll>gambler2_roll:
                                     gamble_winner=gambler1
                                     gamble_loser=gambler2
-                                    async with conn.cursor() as cursor:
-                                        winner_pot = (pot - (pot*0.1))
-                                        query = """
-                                        INSERT INTO `nova_mplus`.balance_ops
-                                                (operation_id, date, name, realm, operation, command, reason, amount, author)
-                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                        """
-                                        val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
-                                        await cursor.execute(query, val)
-                                        loser_pot = pot
-                                        query = """
-                                        INSERT INTO `nova_mplus`.balance_ops
-                                                (operation_id, date, name, realm, operation, command, reason, amount, author)
-                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                        """
-                                        val = (ctx.message.id, now, gamble_loser.split("-")[0], gamble_loser.split("-")[1], 'Deduction', 'Casino', 'Casino bet lose', -loser_pot, 'NOVA_Casino')
-                                        await cursor.execute(query, val)
+                                    async with ctx.bot.mplus_pool.acquire() as conn:
+                                        async with conn.cursor() as cursor:
+                                            winner_pot = (pot - (pot*0.1))
+                                            query = """
+                                            INSERT INTO balance_ops
+                                                    (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                            """
+                                            val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
+                                            await cursor.execute(query, val)
+                                            await asyncio.sleep(randint(0,3))
+
+                                        async with conn.cursor() as cursor:
+                                            loser_pot = pot
+                                            query = """
+                                            INSERT INTO balance_ops
+                                                    (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                            """
+                                            val = (ctx.message.id, now, gamble_loser.split("-")[0], gamble_loser.split("-")[1], 'Deduction', 'Casino', 'Casino bet lose', -loser_pot, 'NOVA_Casino')
+                                            await cursor.execute(query, val)
                                     gamble_msg_embed['color'] = 0x00ff00
                                     gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
                                     dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
@@ -620,44 +631,48 @@ async def betAnyone(ctx, pot):
                                         value = gamble_loser, inline = True)
                                     dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
                                     
-                                    async with conn.cursor() as cursor:
-                                        query = """
-                                            INSERT INTO `nova_casino`.gambling_wins 
-                                                (date, pot, idgamble) 
-                                            VALUES (%s, %s, %s)
-                                        """
-                                        val = (now, pot*2*0.05, ctx.message.id)
-                                        await cursor.execute(query,val)                                     
-                                        query = """
-                                            INSERT INTO `nova_casino`.gambling_log 
-                                                (date, pot, name) 
-                                            VALUES (%s, %s, %s)
-                                        """
-                                        val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
-                                        await cursor.executemany(query,val)
-                                        await gamble_msg.edit(embed=dice_roll_embed)
-                                        await gamble_msg.add_reaction(u"\U0001F4AF")
+                                    async with ctx.bot.casino_pool.acquire() as conn:
+                                        async with conn.cursor() as cursor:
+                                            query = """
+                                                INSERT INTO gambling_wins 
+                                                    (date, pot, idgamble) 
+                                                VALUES (%s, %s, %s)
+                                            """
+                                            val = (now, pot*2*0.05, ctx.message.id)
+                                            await cursor.execute(query,val)                                     
+                                            query = """
+                                                INSERT INTO gambling_log 
+                                                    (date, pot, name) 
+                                                VALUES (%s, %s, %s)
+                                            """
+                                            val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                            await cursor.executemany(query,val)
+                                            await gamble_msg.edit(embed=dice_roll_embed)
+                                            await gamble_msg.add_reaction(u"\U0001F4AF")
                                     
                                 elif gambler2_roll>gambler1_roll:
                                     gamble_winner=gambler2
                                     gamble_loser=gambler1
-                                    async with conn.cursor() as cursor:
-                                        winner_pot = (pot - (pot*0.1))
-                                        query = """
-                                        INSERT INTO `nova_mplus`.balance_ops
-                                                (operation_id, date, name, realm, operation, command, reason, amount, author)
-                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                        """
-                                        val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
-                                        await cursor.execute(query, val)
-                                        loser_pot = pot
-                                        query = """
-                                        INSERT INTO `nova_mplus`.balance_ops
-                                                (operation_id, date, name, realm, operation, command, reason, amount, author)
-                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                        """
-                                        val = (ctx.message.id, now, gamble_loser.split("-")[0], gamble_loser.split("-")[1], 'Deduction', 'Casino', 'Casino bet lose', -loser_pot, 'NOVA_Casino')
-                                        await cursor.execute(query, val)
+                                    async with ctx.bot.mplus_pool.acquire() as conn:
+                                        async with conn.cursor() as cursor:
+                                            winner_pot = (pot - (pot*0.1))
+                                            query = """
+                                            INSERT INTO balance_ops
+                                                    (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                            """
+                                            val = (ctx.message.id, now, gamble_winner.split("-")[0], gamble_winner.split("-")[1], 'Add', 'Casino', 'Casino bet win', winner_pot, 'NOVA_Casino')
+                                            await cursor.execute(query, val)
+                                            await asyncio.sleep(randint(0,3))
+                                        async with conn.cursor() as cursor:
+                                            loser_pot = pot
+                                            query = """
+                                            INSERT INTO balance_ops
+                                                    (operation_id, date, name, realm, operation, command, reason, amount, author)
+                                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                            """
+                                            val = (ctx.message.id, now, gamble_loser.split("-")[0], gamble_loser.split("-")[1], 'Deduction', 'Casino', 'Casino bet lose', -loser_pot, 'NOVA_Casino')
+                                            await cursor.execute(query, val)
                                     gamble_msg_embed['color'] = 0x00ff00
                                     gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
                                     dice_roll_embed = discord.Embed.from_dict(gamble_msg_embed)
@@ -677,23 +692,25 @@ async def betAnyone(ctx, pot):
                                         name = "Loser is: ", 
                                         value = gamble_loser, inline = True)
                                     dice_roll_embed.add_field(name="Loss Amount: ", value = f"{pot:,d}", inline=True)
-                                    async with conn.cursor() as cursor:
-                                        query = """
-                                            INSERT INTO `nova_casino`.gambling_wins 
-                                                (date, pot, idgamble) 
-                                            VALUES (%s, %s, %s)
-                                        """
-                                        val = (now, pot*2*0.05, ctx.message.id)
-                                        await cursor.execute(query,val)
-                                        query = """
-                                            INSERT INTO `nova_casino`.gambling_log 
-                                                (date, pot, name) 
-                                            VALUES (%s, %s, %s)
-                                        """
-                                        val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
-                                        await cursor.executemany(query,val)
-                                        await gamble_msg.edit(embed=dice_roll_embed)
-                                        await gamble_msg.add_reaction(u"\U0001F4AF")
+                                    
+                                    async with ctx.bot.casino_pool.acquire() as conn:
+                                        async with conn.cursor() as cursor:
+                                            query = """
+                                                INSERT INTO gambling_wins 
+                                                    (date, pot, idgamble) 
+                                                VALUES (%s, %s, %s)
+                                            """
+                                            val = (now, pot*2*0.05, ctx.message.id)
+                                            await cursor.execute(query,val)
+                                            query = """
+                                                INSERT INTO gambling_log 
+                                                    (date, pot, name) 
+                                                VALUES (%s, %s, %s)
+                                            """
+                                            val = [(now,pot-pot*0.1,gamble_winner),(now,-pot,gamble_loser)]
+                                            await cursor.executemany(query,val)
+                                            await gamble_msg.edit(embed=dice_roll_embed)
+                                            await gamble_msg.add_reaction(u"\U0001F4AF")
                                 else:
                                     gamble_msg_embed['color'] = 0x0000ff
                                     gamble_msg_embed['title'] = f"💰Gamble info💰 TOTAL POT: {pot*2:,d}"
@@ -735,7 +752,7 @@ async def lottery(ctx):
                 raise ValueError(f"Nickname format not correct for {ctx.author}")
             lottery_user = ctx.author.nick
 
-        async with bot.casino_pool.acquire() as conn:
+        async with ctx.bot.casino_pool.acquire() as conn:
             async with conn.cursor() as cursor:
                 query = """
                     SELECT COALESCE((
@@ -779,7 +796,7 @@ async def lottery(ctx):
                     """
                     val = (now,-50000,lottery_user)
                     await cursor.execute(query,val)
-                    async with bot.mplus_pool.acquire() as conn:
+                    async with ctx.bot.mplus_pool.acquire() as conn:
                         async with conn.cursor() as cursor:
                             query = """
                             INSERT INTO balance_ops
@@ -840,7 +857,7 @@ async def resetEmbed(ctx, price: str):
 @bot.command()
 @commands.has_any_role('developer', 'Moderator', 'Management')
 async def pickWinners(ctx):
-    async with bot.casino_pool.acquire() as conn:
+    async with ctx.bot.casino_pool.acquire() as conn:
         async with conn.cursor() as cursor:
             query = """
                 SELECT `name` 
@@ -890,7 +907,7 @@ async def pickWinners(ctx):
             """
             val = (now, lottery_pot*10/100, ctx.message.id)
             await cursor.execute(query,val)
-            async with bot.mplus_pool.acquire() as conn:
+            async with ctx.bot.mplus_pool.acquire() as conn:
                 async with conn.cursor() as cursor:
                     query = """
                     INSERT INTO balance_ops
